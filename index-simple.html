@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>John's Expedition — Ireland & England, July 2026</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { width: 100%; height: 100%; }
+        body {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            font-family: 'Inter', sans-serif;
+            color: #333;
+            background: #18100A;
+        }
+        .container { width: 100%; max-width: 1400px; display: flex; flex: 1; gap: 20px; }
+        .map-container { flex: 1; display: flex; flex-direction: column; }
+        .header {
+            flex-shrink: 0;
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .header h1 {
+            font-family: 'Cinzel', serif;
+            font-size: 2rem;
+            color: white;
+            margin-bottom: 10px;
+        }
+        .header p { font-size: 1rem; color: white; }
+        #map { flex: 1; border-radius: 10px; }
+        .side-panel {
+            width: 350px;
+            background: #f4e4bc;
+            border: 2px solid #8B6020;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        .panel-content { flex: 1; overflow-y: auto; padding: 20px; }
+        .travel-icon div {
+            width: 28px; height: 28px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(255,255,255,0.95);
+            border-radius: 50%;
+            border: 1px solid rgba(0,0,0,0.12);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+        }
+        .location-marker div {
+            width: 34px; height: 34px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(244, 228, 188, 0.96);
+            border-radius: 50%;
+            border: 2px solid #8B6020;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+            font-size: 18px; line-height: 1;
+        }
+        .location-marker.active div {
+            background: #D4A84B;
+            border-color: #C47F17;
+            color: #2F1E0D;
+        }
+        .panel-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.5rem;
+            color: #D4A84B;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #C4A040;
+            padding-bottom: 10px;
+        }
+        .panel-date {
+            font-style: italic;
+            color: #7B5828;
+            margin-bottom: 15px;
+        }
+        .panel-location {
+            font-weight: 600;
+            color: #D4A84B;
+            margin-bottom: 15px;
+        }
+        .panel-description { line-height: 1.5; margin-bottom: 15px; }
+        .highlights.overview {
+            border-top: 1px solid #C4A040;
+            padding-top: 15px;
+            margin-top: 15px;
+        }
+        .highlight.overview {
+            background: none;
+            border-left: none;
+            padding: 5px 0;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .highlight.overview:hover { color: #D4A84B; }
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-top: 1px solid #C4A040;
+            flex-shrink: 0;
+        }
+        .nav-buttons button {
+            background: #8B6020;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        .nav-buttons button:hover:not(:disabled) { background: #A07030; }
+        .nav-buttons button:disabled { background: #ccc; cursor: not-allowed; }
+        .overview-btn { background: #D4A84B; margin-right: 10px; }
+        .overview-btn:hover { background: #E8B860; }
+        
+        /* Password Modal */
+        .password-modal {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .password-modal.hidden { display: none; }
+        .password-dialog {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+        }
+        .password-dialog h2 {
+            color: #D4A84B;
+            margin-bottom: 20px;
+            font-family: 'Cinzel', serif;
+        }
+        .password-dialog p { color: #666; margin-bottom: 20px; }
+        .password-dialog input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #8B6020;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .password-dialog button {
+            width: 100%;
+            padding: 12px;
+            background: #8B6020;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .password-dialog button:hover { background: #A07030; }
+        .password-error {
+            color: #D32F2F;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="password-modal" id="passwordModal">
+        <div class="password-dialog">
+            <h2>John's Birthday Trip</h2>
+            <p>Enter password to view the itinerary</p>
+            <input type="password" id="passwordInput" placeholder="Enter password" />
+            <button onclick="checkPassword()">Unlock</button>
+            <div class="password-error" id="passwordError"></div>
+        </div>
+    </div>
+
+    <div class="container" id="appContainer" style="display: none;">
+        <div class="map-container">
+            <div class="header">
+                <h1>John's Expedition</h1>
+                <p>Ireland & England · July 2026</p>
+            </div>
+            <div id="map"></div>
+        </div>
+        <div class="side-panel" id="side-panel">
+            <div class="panel-content" id="panel-content"></div>
+            <div class="nav-buttons" id="nav-buttons">
+                <button class="overview-btn" id="overview-btn">Start</button>
+                <button id="prev-day" style="display: none;">Previous Day</button>
+                <button id="next-day" style="display: none;">Next Day</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const CORRECT_PASSWORD = "MooreMen";
+        let itineraryData = null;
+
+        function checkPassword() {
+            const password = document.getElementById('passwordInput').value;
+            const errorDiv = document.getElementById('passwordError');
+            
+            if (password === CORRECT_PASSWORD) {
+                // Load the itinerary
+                fetch('itinerary.json')
+                    .then(r => r.json())
+                    .then(data => {
+                        itineraryData = data;
+                        document.getElementById('passwordModal').classList.add('hidden');
+                        document.getElementById('appContainer').style.display = 'flex';
+                        setTimeout(init, 100);
+                    })
+                    .catch(err => {
+                        errorDiv.textContent = 'Error loading itinerary data';
+                    });
+            } else {
+                errorDiv.textContent = 'Incorrect password';
+                document.getElementById('passwordInput').value = '';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('passwordInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') checkPassword();
+            });
+            document.getElementById('passwordInput').focus();
+        });
+
+        function init() {
+            const itinerary = itineraryData.days || {};
+            const travelLegs = itineraryData.legs || [];
+
+            const map = L.map('map', {
+                center: [45, -40],
+                zoom: 4,
+                minZoom: 3,
+                maxZoom: 10,
+                zoomControl: true
+            });
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            const locations = itineraryData.locations || [];
+
+            function createLocationIcon(emoji, isActive = false) {
+                return L.divIcon({
+                    className: `location-marker${isActive ? ' active' : ''}`,
+                    html: `<div>${emoji || '📍'}</div>`,
+                    iconSize: [36, 36],
+                    iconAnchor: [18, 36]
+                });
+            }
+
+            const markers = [];
+            let currentDay = null;
+
+            window.setDay = function(day) {
+                currentDay = day;
+                updateSidePanel();
+            };
+
+            locations.forEach(loc => {
+                const marker = L.marker([loc.lat, loc.lng], { icon: createLocationIcon(loc.icon) }).addTo(map);
+                markers.push(marker);
+                marker.location = loc;
+
+                marker.on('click', () => {
+                    currentDay = loc.days[0];
+                    updateSidePanel();
+                });
+            });
+
+            const travelStyles = {
+                flying: { color: '#1E90FF', weight: 4, dashArray: '8, 6', opacity: 0.85, icon: '✈️' },
+                driving: { color: '#D2691E', weight: 4, dashArray: '', opacity: 0.85, icon: '🚗' },
+                train: { color: '#228B22', weight: 4, dashArray: '3, 8', opacity: 0.85, icon: '🚆' }
+            };
+
+            travelLegs.forEach(leg => {
+                const style = travelStyles[leg.type] || travelStyles.driving;
+                L.polyline(leg.coords, {
+                    color: style.color,
+                    weight: style.weight,
+                    dashArray: style.dashArray,
+                    opacity: style.opacity,
+                    lineCap: 'round'
+                }).addTo(map);
+
+                const midpoint = [
+                    (leg.coords[0][0] + leg.coords[1][0]) / 2,
+                    (leg.coords[0][1] + leg.coords[1][1]) / 2
+                ];
+
+                const travelIcon = L.divIcon({
+                    className: 'travel-icon',
+                    html: `<div style="font-size: 18px; line-height: 1;">${leg.icon || style.icon}</div>`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
+
+                L.marker(midpoint, { icon: travelIcon, interactive: false }).addTo(map);
+            });
+
+            const bounds = L.latLngBounds(locations.map(loc => [loc.lat, loc.lng]));
+            map.fitBounds(bounds, { padding: [20, 20] });
+
+            const overviewContent = {
+                title: 'Trip Overview',
+                description: 'Join John on his epic birthday adventure across Ireland and England in July 2026. Click on any location marker to explore the details of that day.',
+                highlights: [
+                    'Day 1: Arrival in Dublin',
+                    'Day 2: Bray Wanderers Game',
+                    'Day 3: Travel to Silverstone',
+                    'Day 4: F1 British Grand Prix',
+                    'Day 5: Clarkson\'s Farm / Cotswolds Day',
+                    'Day 6: IWM Duxford + Spitfire Flight',
+                    'Day 7: Departure from London'
+                ]
+            };
+
+            function updateSidePanel() {
+                const panel = document.getElementById('side-panel');
+                let content;
+
+                if (currentDay === null) {
+                    content = overviewContent;
+                } else {
+                    content = itinerary[currentDay] || overviewContent;
+                }
+
+                markers.forEach(marker => marker.setIcon(createLocationIcon(marker.location.icon)));
+
+                if (currentDay !== null) {
+                    const activeLoc = locations.find(loc => loc.days.includes(currentDay));
+                    if (activeLoc) {
+                        const activeMarker = markers.find(m => m.location.id === activeLoc.id);
+                        if (activeMarker) {
+                            activeMarker.setIcon(createLocationIcon(activeLoc.icon, true));
+                            map.setView([activeLoc.lat, activeLoc.lng], 8);
+                        }
+                    }
+                } else {
+                    map.fitBounds(bounds, { padding: [20, 20] });
+                }
+
+                const contentDiv = document.getElementById('panel-content');
+                contentDiv.innerHTML = `
+                    ${content.image ? `<img src="${content.image}" alt="${content.title}" style="width:calc(100% + 40px); height:200px; object-fit:cover; border-radius:8px; margin-bottom:15px; margin-left:-20px; margin-right:-20px; margin-top:-20px;">` : ''}
+                    <div class="panel-title">${content.title}</div>
+                    ${currentDay ? `<div class="panel-date">Day ${currentDay} • ${content.date || ''}</div>` : ''}
+                    ${currentDay ? `<div class="panel-location">${content.location}</div>` : ''}
+                    <div class="panel-description">${content.description}</div>
+                    ${content.highlights && content.highlights.length > 0 ? `
+                        <div class="highlights ${currentDay === null ? 'overview' : ''}">
+                            ${content.highlights.map((h, index) => {
+                                if (currentDay === null) {
+                                    const day = [1,2,3,4,5,6,7][index];
+                                    return `<div class="highlight overview" onclick="setDay(${day})">${h}</div>`;
+                                } else {
+                                    return `<div class="highlight">${h}</div>`;
+                                }
+                            }).join('')}
+                        </div>
+                    ` : ''}
+                `;
+
+                const prevBtn = document.getElementById('prev-day');
+                const nextBtn = document.getElementById('next-day');
+
+                if (currentDay === null) {
+                    prevBtn.style.display = 'none';
+                    nextBtn.style.display = 'none';
+                } else {
+                    prevBtn.style.display = (currentDay > 1) ? 'block' : 'none';
+                    nextBtn.style.display = (currentDay < 7) ? 'block' : 'none';
+                }
+
+                if (!window.buttonListenersAttached) {
+                    document.getElementById('overview-btn').addEventListener('click', () => {
+                        currentDay = 1;
+                        updateSidePanel();
+                    });
+
+                    document.getElementById('prev-day').addEventListener('click', () => {
+                        if (currentDay > 1) {
+                            currentDay--;
+                            updateSidePanel();
+                        }
+                    });
+
+                    document.getElementById('next-day').addEventListener('click', () => {
+                        if (currentDay < 7) {
+                            currentDay++;
+                        }
+                        updateSidePanel();
+                    });
+                    window.buttonListenersAttached = true;
+                }
+            }
+
+            updateSidePanel();
+        }
+    </script>
+</body>
+</html>
